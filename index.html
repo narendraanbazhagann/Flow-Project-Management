@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flow — Project Tracker</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%234F46E5'/><circle cx='50' cy='50' r='20' fill='white'/></svg>">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <div class="toolbar-brand">Flow<span>.</span></div>
+  <div class="toolbar-sep"></div>
+  <div class="toolbar-title">Project Planning</div>
+
+  <div class="seg" style="margin-left:0.8rem">
+    <button class="seg-btn on" id="seg-table" onclick="setView('table')">Table</button>
+    <button class="seg-btn" id="seg-board" onclick="setView('board')">Board</button>
+    <button class="seg-btn" id="seg-timeline" onclick="setView('timeline')">Timeline</button>
+  </div>
+
+  <div class="filters" style="margin-left:0.5rem">
+    <button class="fpill on" onclick="setFilter(this,'all')">All</button>
+    <button class="fpill" onclick="setFilter(this,'urgent')">Urgent</button>
+    <button class="fpill" onclick="setFilter(this,'stuck')">Stuck</button>
+    <button class="fpill" onclick="setFilter(this,'overdue')">Overdue</button>
+    <button class="fpill" onclick="setFilter(this,'mine')">Mine</button>
+  </div>
+
+  <div class="ml-auto" style="display:flex;gap:0.4rem;align-items:center">
+    <div class="tb-search">
+      <span class="tb-search-ic">⌕</span>
+      <input placeholder="Search tasks…" id="srch" oninput="onSearch(this.value)">
+    </div>
+    <div class="ic-btn" onclick="toggleNotif()" title="Notifications">
+      🔔<div class="notif-dot" id="ndot"></div>
+    </div>
+    <div class="ic-btn" onclick="toggleDark()" id="darkBtn" title="Dark mode">🌙</div>
+    <div style="width: 1px; height: 24px; background: var(--border); margin: 0 0.4rem;"></div>
+    <div class="user-profile" onclick="toast('Login system is currently Under Construction 🚧')" title="Login / Profile (Under Construction)" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.3rem 0.6rem; border-radius: 8px; transition: background 0.15s;" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='transparent'">
+      <img src="https://ui-avatars.com/api/?name=Guest+User&background=6366F1&color=fff" alt="User" style="width: 26px; height: 26px; border-radius: 50%;">
+      <span style="font-size: 0.8rem; font-weight: 600; color: var(--ink);">Guest</span>
+    </div>
+    <button class="btn-ghost" onclick="addGrpPrompt()">+ Group</button>
+    <button class="btn-primary" onclick="addTask()">+ New Task</button>
+  </div>
+</div>
+
+<!-- SHELL -->
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-sect">
+      <div class="sb-lbl">Views</div>
+      <div class="sb-row on" id="sb-table" onclick="setView('table')"><span class="sb-ic">⊞</span> Main table <span class="sb-badge" id="sb-table-count">8</span></div>
+      <div class="sb-row" id="sb-timeline" onclick="setView('timeline')"><span class="sb-ic">⟶</span> Gantt</div>
+      <div class="sb-row" id="sb-board" onclick="setView('board')"><span class="sb-ic">☷</span> Kanban</div>
+      <div class="sb-row" id="sb-calendar" onclick="setView('calendar')"><span class="sb-ic">📅</span> Calendar</div>
+      <div class="sb-row" id="sb-hierarchy" onclick="setView('hierarchy')"><span class="sb-ic">🌳</span> Hierarchy</div>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-sect">
+      <div class="sb-lbl">Dashboards</div>
+      <div class="sb-row" id="sb-overview" onclick="setView('overview')"><span class="sb-ic">📊</span> Overview</div>
+      <div class="sb-row" id="sb-reports" onclick="setView('reports')"><span class="sb-ic">📈</span> Reports</div>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-sect">
+      <div class="sb-lbl">Team</div>
+      <div class="sb-member">
+        <div class="sb-av" style="background:#c7f2dc;color:#166534">AK<div class="av-dot d-on"></div></div>
+        <span class="sb-mname">Alex K.</span><span class="sb-mrole">Design</span>
+      </div>
+      <div class="sb-member">
+        <div class="sb-av" style="background:#dbeafe;color:#1e40af">SR<div class="av-dot d-on"></div></div>
+        <span class="sb-mname">Sara R.</span><span class="sb-mrole">Dev</span>
+      </div>
+      <div class="sb-member">
+        <div class="sb-av" style="background:#ede9fe;color:#5b21b6">JP<div class="av-dot d-aw"></div></div>
+        <span class="sb-mname">James P.</span><span class="sb-mrole">PM</span>
+      </div>
+      <div class="sb-member">
+        <div class="sb-av" style="background:#fef3c7;color:#92400e">MN<div class="av-dot d-on"></div></div>
+        <span class="sb-mname">Maya N.</span><span class="sb-mrole">Dev</span>
+      </div>
+      <div class="sb-member">
+        <div class="sb-av" style="background:#fce7f3;color:#9d174d">RC<div class="av-dot d-off"></div></div>
+        <span class="sb-mname">Rachel</span><span class="sb-mrole">Mktg</span>
+      </div>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-sect">
+      <div class="sb-lbl">About</div>
+      <div class="sb-row" id="sb-creator" onclick="setView('creator')"><span class="sb-ic">✨</span> Meet the Creator</div>
+    </div>
+    
+    <div style="margin-top: auto; padding: 1.5rem 0.5rem 0.5rem; text-align: center; font-size: 0.65rem; color: var(--ghost);">
+      <div style="font-weight: 600; color: var(--ink2); margin-bottom: 0.2rem;">Flow App &copy; 2026</div>
+      <div>Designed by Narendra Anbazhagan</div>
+      <div style="display: flex; justify-content: center; gap: 0.8rem; margin-top: 0.6rem;">
+        <a href="#" onclick="toast('Under Construction 🚧'); return false;" style="color: var(--ghost); text-decoration: none; transition: color 0.15s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--ghost)'">Terms</a>
+        <a href="#" onclick="toast('Under Construction 🚧'); return false;" style="color: var(--ghost); text-decoration: none; transition: color 0.15s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--ghost)'">Privacy</a>
+        <a href="#" onclick="toast('Under Construction 🚧'); return false;" style="color: var(--ghost); text-decoration: none; transition: color 0.15s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--ghost)'">API</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- CONTENT -->
+  <div class="content" id="content"></div>
+
+</div>
+
+<!-- NOTIF PANEL -->
+<div class="notif-panel" id="notifPanel">
+  <div class="np-hdr">
+    <div class="np-title">Notifications</div>
+    <button class="np-close" onclick="toggleNotif()">✕</button>
+  </div>
+  <div class="np-body" id="notifList"></div>
+</div>
+
+<!-- POPOVERS -->
+<div class="popover" id="stPop"></div>
+<div class="popover" id="prPop"></div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- MODAL OVERLAY -->
+<div class="modal-overlay" id="sysModal" onclick="closeModal(event)">
+  <div class="modal-content">
+    <div class="modal-hdr">
+      <h3 id="modalTitle">Create New</h3>
+      <button class="modal-close" onclick="closeModal(true)">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-ftr">
+      <button class="btn-ghost" onclick="closeModal(true)">Cancel</button>
+      <button class="btn-primary" id="modalSubmit">Save</button>
+    </div>
+  </div>
+</div>
+<!-- Scripts -->
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
