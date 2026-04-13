@@ -39,14 +39,13 @@ function render() {
     else if (currentView === 'board') content.innerHTML = rKanban();
     else if (currentView === 'overview') content.innerHTML = rOverview();
     else if (currentView === 'reports') content.innerHTML = rReports();
-    else if (currentView === 'creator') content.innerHTML = rCreator();
     else if (currentView === 'hierarchy') content.innerHTML = rHierarchy();
     else if (currentView === 'timeline') content.innerHTML = rTimeline();
     else {
       content.innerHTML = `<div class="placeholder-view">
         <div class="ic">🚧</div>
         <h3>View in Development</h3>
-        <p>The ${currentView} view is coming soon. Select Table, Board, Overview, Hierarchy, or Meet the Creator.</p>
+        <p>The ${currentView} view is coming soon. Select Table, Board, Overview, or Hierarchy.</p>
       </div>`;
     }
   }
@@ -152,37 +151,7 @@ function rOverview() {
   return html;
 }
 
-function rCreator() {
-  return `
-    <div style="max-width: 600px; margin: 0 auto; padding-top: 2rem;">
-      <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 2.5rem; text-align: center; box-shadow: var(--shadow-pop);">
-        <div style="width: 80px; height: 80px; background: var(--accent); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 700; margin: 0 auto 1.5rem; box-shadow: 0 4px 12px rgba(0,122,255,0.3);">
-          NA
-        </div>
-        <h2 style="font-size: 1.8rem; font-weight: 700; color: var(--ink); margin-bottom: 0.5rem; letter-spacing: -0.5px;">Narendra Anbazhagan</h2>
-        <div style="font-size: 0.9rem; font-weight: 500; color: var(--accent); margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: 1px;">Creator & Developer</div>
-        
-        <p style="font-size: 0.95rem; line-height: 1.6; color: var(--ink2); margin-bottom: 2rem; text-align: left;">
-          Hello! I'm Narendra. I'm passionate about building clean, high-performance web applications with stunning user interfaces. This Project Tracker was designed to demonstrate efficient state management, component architecture, and modern UI/UX principles while keeping a premium, smooth user experience.
-        </p>
 
-        <div style="background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem; margin-bottom: 2rem; text-align: left;">
-          <h3 style="font-size: 0.85rem; font-weight: 600; color: var(--ink); margin-bottom: 0.8rem; text-transform: uppercase;">Contact info</h3>
-          <div style="display: flex; gap: 0.8rem; align-items: center; margin-bottom: 0.7rem; color: var(--ink2); font-size: 0.85rem;">
-            <span style="font-size: 1.1rem; color: var(--ghost);">📧</span> <a href="mailto:contact@naren-portfolio.me" style="color: var(--ink2); text-decoration: none;">contact@naren-portfolio.me</a>
-          </div>
-          <div style="display: flex; gap: 0.8rem; align-items: center; color: var(--ink2); font-size: 0.85rem;">
-            <span style="font-size: 1.1rem; color: var(--ghost);">🌐</span> <a href="http://naren-portfolio.me/" target="_blank" style="color: var(--accent); text-decoration: none; font-weight: 500;">naren-portfolio.me</a>
-          </div>
-        </div>
-
-        <a href="http://naren-portfolio.me/" target="_blank" class="btn-primary" style="display: inline-block; padding: 0.6rem 1.5rem; text-decoration: none; font-size: 0.9rem;">
-          View Full Portfolio
-        </a>
-      </div>
-    </div>
-  `;
-}
 
 function rHierarchy() {
   const tInfo = (id) => {
