@@ -1,5 +1,6 @@
 let currentView = 'table';
 let exp = new Set(), tabs = {}, filt = 'all', srch = '', sPick = null, pPick = null, dragId = null, dark = false;
+let collapsedNodes = new Set();
 
 // ── HELPERS ──────────────────────────────────
 function dd(s) {
@@ -75,7 +76,10 @@ function rKanban() {
   cols.forEach(c => {
     let tasksInfo = allTasks.filter(t => t.st === c.st);
     html += `
-      <div class="k-col">
+      <div class="k-col" 
+        ondragover="kDOv(event, this)" 
+        ondragleave="kDLv(event, this)" 
+        ondrop="kDDp(event, '${c.st}')">
         <div class="k-hdr" style="border-top: 3px solid ${c.color}">
           <span>${c.name}</span>
           <span class="k-count">${tasksInfo.length}</span>
@@ -87,7 +91,10 @@ function rKanban() {
               const x = T[id] || {};
               return `<div class="av" style="background:${x.c};color:${x.t}">${id}</div>`;
             }).join('');
-            return `<div class="k-card" onclick="setView('table'); togExpTab('${t.id}','subtasks');">
+            return `<div class="k-card" 
+              draggable="true" 
+              ondragstart="kDSt(event, '${t.gId}', '${t.id}')"
+              onclick="setView('table'); togExpTab('${t.id}','subtasks');">
               <div style="font-size:0.6rem; font-weight:700; color:${p.col}; margin-bottom:0.25rem;">${p.l.toUpperCase()}</div>
               <div class="k-title">${t.nm}</div>
               <div class="k-meta">
@@ -154,54 +161,140 @@ function rOverview() {
 
 
 function rHierarchy() {
-  const tInfo = (id) => {
-    const x = T[id] || {name: id, c:'#e2e8f0', t:'#475569'};
-    return { id, nm: x.name, c: x.c, t: x.t };
-  };
+  const allTasks = [];
+  grps.forEach(g => g.tasks.forEach(t => allTasks.push(t)));
   
-  const mgr = tInfo('JP');
-  const d1 = tInfo('AK');
-  const d2 = tInfo('SR');
-  const i1 = tInfo('RC');
-  const i2 = tInfo('MN');
+  const getWorkload = (id) => allTasks.filter(t => t.own === id && t.st !== 'done').length;
+  const getAvgProgress = (id) => {
+    const ts = allTasks.filter(t => t.own === id);
+    return ts.length ? Math.round(ts.reduce((a, b) => a + b.pg, 0) / ts.length) : 0;
+  };
 
-  const cardHtml = (p, role) => `
-    <div class="org-card">
-      <div class="org-av" style="background:${p.c};color:${p.t}">${p.id}</div>
-      <div class="org-nm">${p.nm}</div>
-      <div class="org-rl">${role}</div>
-    </div>
-  `;
+  const cardHtml = (id) => {
+    const p = T[id];
+    if (!p) return '';
+    const load = getWorkload(id);
+    const progress = getAvgProgress(id);
+    const hasChildren = Object.values(T).some(x => x.reportsTo === id);
+    const isCollapsed = collapsedNodes.has(id);
+
+    return `
+      <div class="org-card" style="border-left: 4px solid ${p.c};">
+        <div style="position:absolute; top:8px; right:8px; display:flex; gap:4px;">
+          ${hasChildren ? `<button class="ic-btn" style="width:20px; height:20px; font-size:0.6rem;" onclick="event.stopPropagation(); toggleOrgBranch('${id}')">${isCollapsed ? '+' : '-'}</button>` : ''}
+          <button class="ic-btn" title="View Workload" style="width:20px; height:20px; font-size:0.6rem;" onclick="event.stopPropagation(); showWorkloadModal('${id}')">📋</button>
+        </div>
+        <div class="org-av" style="background:${p.c};color:${p.t}">
+          ${id}
+          <div class="av-dot ${p.online ? 'd-on' : 'd-off'}" style="width:10px;height:10px;border-width:2px;bottom:2px;right:2px;"></div>
+        </div>
+        <div class="org-nm">${p.name}</div>
+        <div class="org-rl">${p.role}</div>
+        <div style="margin:0.6rem 0 0.4rem; font-size:0.6rem; font-weight:700; color:var(--ghost); display:flex; justify-content:center; gap:0.4rem; align-items:center;">
+          <span style="background:var(--surface3); padding:0.1rem 0.4rem; border-radius:4px;">${p.dept}</span>
+          <span style="color:${load > 2 ? 'var(--red)' : 'var(--green)'}">${load} active tasks</span>
+        </div>
+        <div class="prog-wrap" style="padding:0 0.4rem;">
+          <div class="prog-bg" style="height:3px;"><div class="prog-fill" style="width:${progress}%; background:var(--accent)"></div></div>
+          <div style="font-size:0.55rem; color:var(--ghost); text-align:center;">${progress}% Avg Productivity</div>
+        </div>
+      </div>
+    `;
+  };
+
+  const buildTree = (managerId) => {
+    if (collapsedNodes.has(managerId)) return '';
+    const reports = Object.keys(T).filter(id => T[id].reportsTo === managerId);
+    if (reports.length === 0) return '';
+    
+    return `
+      <ul>
+        ${reports.map(id => `
+          <li>
+            ${cardHtml(id)}
+            ${buildTree(id)}
+          </li>
+        `).join('')}
+      </ul>
+    `;
+  };
+
+  const roots = Object.keys(T).filter(id => !T[id].reportsTo);
 
   return `
     <div style="margin-bottom: 2rem;">
-      <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 0.2rem; color: var(--ink);">Organization Chart</h2>
-      <p style="font-size: 0.85rem; color: var(--ghost); margin-bottom: 1.5rem;">Visual topology of the current project team.</p>
+      <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 1.5rem;">
+        <div>
+          <h2 style="font-size: 1.4rem; font-weight: 700; color: var(--ink);">Organization Chart</h2>
+          <p style="font-size: 0.85rem; color: var(--ghost);">Operational topology & performance metrics.</p>
+        </div>
+        <div style="display:flex; gap:0.5rem;">
+           <button class="btn-ghost" style="font-size:0.7rem;" onclick="collapsedNodes.clear(); render();">Expand All</button>
+           <button class="btn-ghost" style="font-size:0.7rem;" onclick="collapseAll();">Collapse All</button>
+        </div>
+      </div>
       <div class="org-tree-wrapper">
         <div class="org-tree">
           <ul>
-            <li class="org-root">
-              ${cardHtml(mgr, 'Project Manager')}
-              <ul>
-                <li>
-                  ${cardHtml(d1, 'Head of Design')}
-                  <ul>
-                    <li>${cardHtml(i1, 'Design Intern')}</li>
-                  </ul>
-                </li>
-                <li>
-                  ${cardHtml(d2, 'Lead Developer')}
-                  <ul>
-                    <li>${cardHtml(i2, 'Dev Intern')}</li>
-                  </ul>
-                </li>
-              </ul>
-            </li>
+            ${roots.map(id => `
+              <li class="org-root">
+                ${cardHtml(id)}
+                ${buildTree(id)}
+              </li>
+            `).join('')}
           </ul>
         </div>
       </div>
     </div>
   `;
+}
+
+function toggleOrgBranch(id) {
+  if (collapsedNodes.has(id)) collapsedNodes.delete(id);
+  else collapsedNodes.add(id);
+  render();
+}
+
+function collapseAll() {
+  Object.keys(T).forEach(id => {
+    if (Object.values(T).some(x => x.reportsTo === id)) collapsedNodes.add(id);
+  });
+  render();
+}
+
+function showWorkloadModal(id) {
+  const p = T[id];
+  const allTasks = [];
+  grps.forEach(g => g.tasks.forEach(t => { if(t.own === id) allTasks.push(t); }));
+  
+  modalMode = 'workload';
+  document.getElementById('modalTitle').textContent = `${p.name}'s Workload`;
+  document.getElementById('modalBody').innerHTML = `
+    <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem; padding-bottom:1rem; border-bottom:1px solid var(--border);">
+       <div class="org-av" style="background:${p.c};color:${p.t}; margin:0;">${id}</div>
+       <div>
+         <div style="font-weight:700; font-size:1.1rem;">${p.name}</div>
+         <div style="font-size:0.8rem; color:var(--ghost);">${p.role} • ${p.dept}</div>
+       </div>
+    </div>
+    <div style="max-height: 300px; overflow-y: auto;">
+      <div style="font-size:0.65rem; font-weight:700; color:var(--ghost); text-transform:uppercase; margin-bottom:0.5rem;">Assigned Tasks (${allTasks.length})</div>
+      ${allTasks.map(t => {
+        const s = SM[t.st] || SM.todo;
+        return `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:0.6rem; background:var(--surface2); border:1px solid var(--border); border-radius:8px; margin-bottom:0.4rem;">
+            <div>
+              <div style="font-weight:600; font-size:0.8rem;">${t.nm}</div>
+              <div style="font-size:0.7rem; color:var(--ghost);">${t.dt}</div>
+            </div>
+            <div class="stbadge ${s.cls}" style="width:auto; font-size:0.6rem; padding:2px 8px;">${s.l}</div>
+          </div>
+        `;
+      }).join('') || '<div style="text-align:center; padding:1rem; color:var(--ghost);">No tasks assigned</div>'}
+    </div>
+  `;
+  document.getElementById('modalSubmit').style.display = 'none';
+  document.getElementById('sysModal').classList.add('open');
 }
 
 function rTimeline() {
@@ -555,6 +648,7 @@ let targetGid = null;
 function closeModal(cancel) {
   document.getElementById('sysModal').classList.remove('open');
   modalMode = null; targetGid = null;
+  document.getElementById('modalSubmit').style.display = 'block'; // Reset display
 }
 
 function addGrpPrompt() {
@@ -668,6 +762,29 @@ function dDp(e, gid, tid) {
   dragId = null; render(); toast('Task moved');
 }
 
+// KANBAN DRAG
+function kDSt(e, gid, tid) { dragId = { gid, tid }; e.dataTransfer.effectAllowed = 'move'; }
+function kDOv(e, el) { e.preventDefault(); el.classList.add('k-drag-over'); }
+function kDLv(e, el) { el.classList.remove('k-drag-over'); }
+function kDDp(e, targetStatus) {
+  e.preventDefault(); 
+  document.querySelectorAll('.k-col').forEach(c => c.classList.remove('k-drag-over'));
+  if (!dragId) return;
+  
+  const g = grps.find(x => x.id === dragId.gid);
+  const t = g?.tasks.find(x => x.id === dragId.tid);
+  
+  if (t) {
+    if (t.st !== targetStatus) {
+      t.st = targetStatus;
+      if (targetStatus === 'done') t.pg = 100;
+      t.cmts.push({ id: 'a_' + Date.now(), by: 'AK', ts: 'Just now', tx: 'Moved to', st: targetStatus, rx: [] });
+      toast(`Moved to ${SM[targetStatus]?.l || targetStatus}`);
+    }
+  }
+  dragId = null; render();
+}
+
 // FILTER
 function setFilter(el, f) { document.querySelectorAll('.fpill').forEach(c => c.classList.remove('on')); el.classList.add('on'); filt = f; render(); }
 function onSearch(q) { srch = q; render(); }
@@ -689,6 +806,21 @@ function initSidebar() {
   // Sidebar clicks now managed by inline onclick="setView('...')"
 }
 
+function rSidebarTeam() {
+  const list = document.getElementById('sb-team-list');
+  if (!list) return;
+  list.innerHTML = Object.entries(T).map(([id, p]) => `
+    <div class="sb-member" onclick="toast('${p.name} - ${p.role}')">
+      <div class="sb-av" style="background:${p.c};color:${p.t}">
+        ${id}
+        <div class="av-dot ${p.online ? 'd-on' : 'd-off'}"></div>
+      </div>
+      <span class="sb-mname">${p.name}</span>
+      <span class="sb-mrole">${p.dept}</span>
+    </div>
+  `).join('');
+}
+
 // TOAST
 let _tt;
 function toast(msg) {
@@ -702,5 +834,6 @@ function toast(msg) {
 // ON LOAD
 window.addEventListener('DOMContentLoaded', () => {
   render();
+  rSidebarTeam();
   initSidebar();
 });

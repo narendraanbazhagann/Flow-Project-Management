@@ -1,10 +1,10 @@
 const T = {
-  AK: { name: 'Alex K.', c: '#c7f2dc', t: '#166534' },
-  SR: { name: 'Sara R.', c: '#dbeafe', t: '#1e40af' },
-  JP: { name: 'James P.', c: '#ede9fe', t: '#5b21b6' },
-  MN: { name: 'Maya N.', c: '#fef3c7', t: '#92400e' },
-  RC: { name: 'Rachel', c: '#fce7f3', t: '#9d174d' },
-  ED: { name: 'Eddie', c: '#d1fae5', t: '#065f46' },
+  JP: { name: 'James P.', c: '#ede9fe', t: '#5b21b6', role: 'Project Manager', dept: 'Operations', reportsTo: null, online: true },
+  AK: { name: 'Alex K.', c: '#c7f2dc', t: '#166534', role: 'Design Lead', dept: 'Creative', reportsTo: 'JP', online: true },
+  SR: { name: 'Sara R.', c: '#dbeafe', t: '#1e40af', role: 'Engineering Lead', dept: 'Tech', reportsTo: 'JP', online: true },
+  RC: { name: 'Rachel', c: '#fce7f3', t: '#9d174d', role: 'UX Designer', dept: 'Creative', reportsTo: 'AK', online: true },
+  MN: { name: 'Maya N.', c: '#fef3c7', t: '#92400e', role: 'Frontend Dev', dept: 'Tech', reportsTo: 'SR', online: true },
+  ED: { name: 'Eddie', c: '#d1fae5', t: '#065f46', role: 'Backend Dev', dept: 'Tech', reportsTo: 'SR', online: false },
 };
 
 const SM = {
